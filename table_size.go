@@ -7,10 +7,13 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/juju/loggo"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 const rowCountCutoff = 10000.0
+
+var log = loggo.GetLogger("cloud-green.monitoring")
 
 // NewTableSizeCollector returns a new collector that monitors table sizes.
 func NewTableSizeCollector(namespace string, db *sql.DB) (*dbTableSizeCollector, error) {

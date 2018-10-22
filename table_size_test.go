@@ -9,6 +9,7 @@ import (
 	"github.com/CanonicalLtd/omniutils/testing/pgtest"
 	jc "github.com/juju/testing/checkers"
 	"github.com/prometheus/client_golang/prometheus"
+	prometheusinternal "github.com/prometheus/client_model/go"
 	gc "gopkg.in/check.v1"
 
 	"github.com/cloud-green/monitoring"
@@ -66,4 +67,32 @@ func (s *tableSizeSuite) TestCollector(c *gc.C) {
 	m.Collect(ch)
 	assertValue(c, ch, 24, "tests")
 
+}
+
+func assertValue(c *gc.C, ch chan prometheus.Metric, count float64, label string) {
+	value := getValue(c, ch, label)
+	c.Assert(value, gc.Equals, count)
+}
+
+func getValue(c *gc.C, ch chan prometheus.Metric, label string) float64 {
+	var m prometheus.Metric
+	var raw prometheusinternal.Metric
+	select {
+	case m = <-ch:
+	default:
+		c.Error("metric not provided by collector")
+	}
+
+	err := m.Write(&raw)
+	c.Assert(err, jc.ErrorIsNil)
+
+	labels := raw.GetLabel()
+	// handle for different labeling of table/collection size monitors.
+	// The table or collection name is the last label in any case.
+	l := len(labels)
+	c.Assert(labels[l-1].GetValue(), gc.Equals, label)
+
+	cnt := raw.GetGauge()
+	value := cnt.GetValue()
+	return value
 }
